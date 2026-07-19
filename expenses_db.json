@@ -1,0 +1,16 @@
+[
+  {
+    "expense_id": "EXP_001",
+    "date": "2026-07-09T11:48:27.198Z",
+    "category": "Freight",
+    "amount": 1500,
+    "remarks": "Disposables delivery transport charges from Mumbai warehouse."
+  },
+  {
+    "expense_id": "EXP_002",
+    "date": "2026-07-11T11:48:27.199Z",
+    "category": "Utilities",
+    "amount": 3200,
+    "remarks": "Electricity charges for shop and warehouse air circulation."
+  }
+]

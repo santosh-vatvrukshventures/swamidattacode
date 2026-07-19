@@ -1,0 +1,130 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net - Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Core Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isVerifiedOperator() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 1. ITEMS (Inventory Tracking)
+    match /items/{itemId} {
+      allow read: if isVerifiedOperator();
+      
+      allow create: if isVerifiedOperator() 
+        && isValidId(itemId) 
+        && itemId == request.resource.data.item_id
+        && isValidItem(request.resource.data);
+        
+      allow update: if isVerifiedOperator()
+        && isValidItem(request.resource.data)
+        && (
+          // Action: Stock Adjustment (Restocking or Sales decrement)
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['current_stock_qty'])) ||
+          // Action: Pricing / Catalog Updates
+          (request.resource.data.diff(resource.data).affectedKeys().hasAny(['name', 'category', 'purchase_price', 'selling_price_retail', 'selling_price_wholesale', 'min_stock_alert']))
+        )
+        // Immutable Key Protection
+        && request.resource.data.item_id == resource.data.item_id;
+        
+      allow delete: if false; // Inventory catalog items shouldn't be deleted, set stock to 0 or mark inactive instead
+    }
+
+    // Validation helper for Item
+    function isValidItem(data) {
+      return data.item_id is string && data.item_id.size() <= 128
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 200
+        && data.category is string && data.category.size() <= 100
+        && data.purchase_price is number && data.purchase_price >= 0
+        && data.selling_price_retail is number && data.selling_price_retail >= 0
+        && data.selling_price_wholesale is number && data.selling_price_wholesale >= 0
+        && data.current_stock_qty is number && data.current_stock_qty >= -1000
+        && data.min_stock_alert is number && data.min_stock_alert >= 0;
+    }
+
+    // 2. SALES (Transaction Invoices)
+    match /sales/{saleId} {
+      allow read: if isVerifiedOperator();
+      
+      allow create: if isVerifiedOperator()
+        && isValidId(saleId)
+        && saleId == request.resource.data.sale_id
+        && isValidSale(request.resource.data)
+        && request.resource.data.date == request.time; // Enforce server timestamp
+        
+      allow update, delete: if false; // SALES ARE IMMUTABLE FOR ACCOUNTING INTEGRITY
+    }
+
+    // Validation helper for Sale
+    function isValidSale(data) {
+      return data.sale_id is string && data.sale_id.size() <= 128
+        && data.date is timestamp
+        && data.customer_name is string && data.customer_name.size() <= 200
+        && (data.customer_type == 'Retail' || data.customer_type == 'Wholesale')
+        && data.items_sold is list && data.items_sold.size() > 0 && data.items_sold.size() <= 100
+        && data.items_sold[0].item_id is string && data.items_sold[0].qty_sold is number
+        && data.gross_total is number && data.gross_total >= 0
+        && data.discount_given is number && data.discount_given >= 0
+        && data.net_amount_payable is number && data.net_amount_payable >= 0
+        && data.payment_mode is string && data.payment_mode.size() <= 50;
+    }
+
+    // 3. WAREHOUSE INWARD (Restocking Logs)
+    match /warehouse_inward/{inwardId} {
+      allow read: if isVerifiedOperator();
+      
+      allow create: if isVerifiedOperator()
+        && isValidId(inwardId)
+        && inwardId == request.resource.data.inward_id
+        && isValidInward(request.resource.data)
+        && request.resource.data.date == request.time; // Enforce server timestamp
+        
+      allow update, delete: if false; // INWARD LOGS ARE IMMUTABLE FOR ACCOUNTING INTEGRITY
+    }
+
+    // Validation helper for Warehouse Inward
+    function isValidInward(data) {
+      return data.inward_id is string && data.inward_id.size() <= 128
+        && data.date is timestamp
+        && data.supplier_name is string && data.supplier_name.size() <= 200
+        && data.items_received is list && data.items_received.size() > 0 && data.items_received.size() <= 100
+        && data.items_received[0].item_id is string && data.items_received[0].qty_added is number
+        && data.total_invoice_cost is number && data.total_invoice_cost >= 0;
+    }
+
+    // 4. EXPENSES (Outward Costs)
+    match /expenses/{expenseId} {
+      allow read: if isVerifiedOperator();
+      
+      allow create: if isVerifiedOperator()
+        && isValidId(expenseId)
+        && expenseId == request.resource.data.expense_id
+        && isValidExpense(request.resource.data)
+        && request.resource.data.date == request.time; // Enforce server timestamp
+        
+      allow update, delete: if false; // EXPENSES ARE IMMUTABLE FOR AUDITING
+    }
+
+    // Validation helper for Expense
+    function isValidExpense(data) {
+      return data.expense_id is string && data.expense_id.size() <= 128
+        && data.date is timestamp
+        && data.category is string && data.category.size() <= 100
+        && data.amount is number && data.amount >= 0
+        && data.remarks is string && data.remarks.size() <= 1000;
+    }
+  }
+}

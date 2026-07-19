@@ -1,0 +1,196 @@
+{
+  "entities": {
+    "Item": {
+      "title": "Item",
+      "description": "An inventory item in Swamidatta Traders' database tracking wholesale and retail details.",
+      "type": "object",
+      "properties": {
+        "item_id": {
+          "type": "string",
+          "description": "Unique catalog ID for the inventory item."
+        },
+        "name": {
+          "type": "string",
+          "description": "Descriptive name of the product."
+        },
+        "category": {
+          "type": "string",
+          "description": "Product category (e.g., Disposables, Mangal Puja Samagri, Party Decoration Articles)."
+        },
+        "purchase_price": {
+          "type": "number",
+          "description": "Wholesale supplier cost price per unit."
+        },
+        "selling_price_retail": {
+          "type": "number",
+          "description": "Selling price for standard retail customers."
+        },
+        "selling_price_wholesale": {
+          "type": "number",
+          "description": "Selling price for bulk wholesale customers."
+        },
+        "current_stock_qty": {
+          "type": "number",
+          "description": "Available stock level in the warehouse."
+        },
+        "min_stock_alert": {
+          "type": "number",
+          "description": "Minimum stock threshold below which an alert is raised."
+        }
+      },
+      "required": [
+        "item_id",
+        "name",
+        "category",
+        "purchase_price",
+        "selling_price_retail",
+        "selling_price_wholesale",
+        "current_stock_qty",
+        "min_stock_alert"
+      ]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "A customer invoice document logging a wholesale or retail transaction.",
+      "type": "object",
+      "properties": {
+        "sale_id": {
+          "type": "string",
+          "description": "Unique sales invoice identifier."
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the transaction was completed."
+        },
+        "customer_name": {
+          "type": "string",
+          "description": "Name of the customer."
+        },
+        "customer_type": {
+          "type": "string",
+          "enum": ["Retail", "Wholesale"],
+          "description": "Customer type determining unit pricing defaults."
+        },
+        "items_sold": {
+          "type": "array",
+          "description": "List of items purchased in this invoice."
+        },
+        "gross_total": {
+          "type": "number",
+          "description": "Sum of all line items before discount."
+        },
+        "discount_given": {
+          "type": "number",
+          "description": "Cash discount deducted from the gross total."
+        },
+        "net_amount_payable": {
+          "type": "number",
+          "description": "Total final payment amount received."
+        },
+        "payment_mode": {
+          "type": "string",
+          "description": "Payment channel used (e.g., Cash, UPI, Card, Credit)."
+        }
+      },
+      "required": [
+        "sale_id",
+        "date",
+        "customer_name",
+        "customer_type",
+        "items_sold",
+        "gross_total",
+        "discount_given",
+        "net_amount_payable",
+        "payment_mode"
+      ]
+    },
+    "WarehouseInward": {
+      "title": "WarehouseInward",
+      "description": "A log of incoming supplier shipments restocking inventory levels.",
+      "type": "object",
+      "properties": {
+        "inward_id": {
+          "type": "string",
+          "description": "Unique inward consignment log identifier."
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when restocking was registered."
+        },
+        "supplier_name": {
+          "type": "string",
+          "description": "Name of the supplying vendor."
+        },
+        "items_received": {
+          "type": "array",
+          "description": "List of restocked line items with counts."
+        },
+        "total_invoice_cost": {
+          "type": "number",
+          "description": "Total financial expense for the restock shipment."
+        }
+      },
+      "required": [
+        "inward_id",
+        "date",
+        "supplier_name",
+        "items_received",
+        "total_invoice_cost"
+      ]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Operating expenditure logging outward shop operating costs.",
+      "type": "object",
+      "properties": {
+        "expense_id": {
+          "type": "string",
+          "description": "Unique operating expense voucher ID."
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when expense was recorded."
+        },
+        "category": {
+          "type": "string",
+          "description": "Expense category (e.g., Freight, Utilities, Rent, Staff Welfare)."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Total payment amount."
+        },
+        "remarks": {
+          "type": "string",
+          "description": "Audit notes detailing the payment purpose."
+        }
+      },
+      "required": [
+        "expense_id",
+        "date",
+        "category",
+        "amount"
+      ]
+    }
+  },
+  "firestore": {
+    "/items/{itemId}": {
+      "schema": "Item",
+      "description": "Inventory catalog and stock status entries."
+    },
+    "/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Transaction invoice documents and sales counter lines."
+    },
+    "/warehouse_inward/{inwardId}": {
+      "schema": "WarehouseInward",
+      "description": "Consignment resting receipts logs."
+    },
+    "/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Operational budget expenditures."
+    }
+  }
+}

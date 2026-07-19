@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Redefining Slate as the Warm Chocolate Dark Theme (#320f06) */
+  --color-slate-50: #faf9f9;
+  --color-slate-100: #f7f4f3;
+  --color-slate-200: #eae2e0;
+  --color-slate-300: #d4c2bd;
+  --color-slate-400: #b3928a;
+  --color-slate-500: #8a2912;
+  --color-slate-600: #6b200e;
+  --color-slate-700: #4d170a;
+  --color-slate-800: #320f06;
+  --color-slate-850: #250b05;
+  --color-slate-900: #1c0904;
+  --color-slate-950: #0f0502;
+
+  /* Redefining Indigo as the Brand Orange (#ff7626) */
+  --color-indigo-50: #fff7f2;
+  --color-indigo-100: #ffede0;
+  --color-indigo-200: #ffd7bf;
+  --color-indigo-300: #ffc099;
+  --color-indigo-400: #ffa773;
+  --color-indigo-500: #ff8f4c;
+  --color-indigo-600: #ff7626;
+  --color-indigo-700: #bd3e00;
+  --color-indigo-750: #8f2b00;
+  --color-indigo-800: #702100;
+  --color-indigo-900: #471500;
+  --color-indigo-950: #2b0d00;
+
+  /* Redefining Blue as a matching chocolate-accent variant */
+  --color-blue-50: #fff7f2;
+  --color-blue-100: #ffede0;
+  --color-blue-200: #ffd7bf;
+  --color-blue-300: #ffc099;
+  --color-blue-400: #ffa773;
+  --color-blue-500: #ff8f4c;
+  --color-blue-600: #ff7626;
+  --color-blue-700: #bd3e00;
+  --color-blue-800: #5e200f;
+  --color-blue-850: #47180b;
+  --color-blue-900: #2b0f06;
+  --color-blue-950: #1c0a04;
+}
+
+@layer utilities {
+  /* Hide scrollbars for chrome/safari */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Hide scrollbars for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  /* Hide number input spin buttons */
+  .hide-number-spinners::-webkit-inner-spin-button,
+  .hide-number-spinners::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .hide-number-spinners {
+    -moz-appearance: textfield;
+  }
+
+  /* Enforce that all text color classes have brightness not less than 50% */
+  .text-slate-500 {
+    color: #b09c97 !important; /* ~62% brightness */
+  }
+  .text-slate-600 {
+    color: #a48e89 !important; /* ~58% brightness */
+  }
+  .text-red-500 {
+    color: #ff6b6b !important; /* ~59% brightness */
+  }
+  .text-emerald-500 {
+    color: #2ee59d !important; /* ~71% brightness */
+  }
+}
+
+@media (max-width: 768px) {
+  /* Scale font-sizes by 115% on mobile for comfortable readability (10% reduction from previous size) */
+  :root {
+    --text-xs: 0.8625rem !important; /* ~13.8px */
+    --text-xs--line-height: 1.25rem !important;
+    --text-sm: 1.0rem !important; /* ~16px */
+    --text-sm--line-height: 1.4rem !important;
+    --text-base: 1.15rem !important; /* ~18.4px */
+    --text-base--line-height: 1.6rem !important;
+    --text-lg: 1.3rem !important; /* ~20.8px */
+    --text-lg--line-height: 1.8rem !important;
+    --text-xl: 1.4375rem !important; /* ~23px */
+    --text-xl--line-height: 2rem !important;
+    --text-2xl: 1.725rem !important; /* ~27.6px */
+    --text-2xl--line-height: 2.3rem !important;
+    --text-3xl: 2.15625rem !important; /* ~34.5px */
+    --text-3xl--line-height: 2.7rem !important;
+    --text-4xl: 2.5875rem !important; /* ~41.4px */
+    --text-4xl--line-height: 3.1rem !important;
+  }
+
+  /* Scale button elements on mobile (excluding small footer status buttons) */
+  button:not(.footer-btn) {
+    padding-top: calc(var(--spacing) * 2.2) !important;
+    padding-bottom: calc(var(--spacing) * 2.2) !important;
+    padding-left: calc(var(--spacing) * 3.5) !important;
+    padding-right: calc(var(--spacing) * 3.5) !important;
+    min-height: 2.5rem !important;
+    font-size: 1.0rem !important;
+    line-height: 1.4rem !important;
+  }
+
+  /* Make sure inputs and select boxes match in size */
+  input, select, textarea {
+    padding-top: calc(var(--spacing) * 1.8) !important;
+    padding-bottom: calc(var(--spacing) * 1.8) !important;
+    padding-left: calc(var(--spacing) * 2.5) !important;
+    padding-right: calc(var(--spacing) * 2.5) !important;
+    min-height: 2.5rem !important;
+    font-size: 1.0rem !important;
+  }
+
+  /* Shrink icon sizing slightly inside buttons for visual balance */
+  button:not(.footer-btn) svg {
+    width: 1.05rem !important;
+    height: 1.05rem !important;
+  }
+
+  /* Fix navigation drawer tabs size on mobile bottom nav */
+  footer button {
+    min-height: auto !important;
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 1) !important;
+  }
+}
+
+

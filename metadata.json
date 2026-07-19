@@ -1,0 +1,6 @@
+{
+  "name": "Swamidatta Traders",
+  "description": "Private internal shop management, real-time inventory tracking, warehouse inward logging, and operational expenses ledger.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

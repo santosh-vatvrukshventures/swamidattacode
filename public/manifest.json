@@ -1,0 +1,51 @@
+{
+  "id": "/",
+  "name": "Swamidatta Traders — Shop Manager",
+  "short_name": "Swamidatta",
+  "description": "Complete offline-first shop management PWA for Swamidatta Traders. POS billing, inventory tracking, expense logging, outstanding ledgers & financial reports — all in one app.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f0502",
+  "theme_color": "#0f0502",
+  "orientation": "portrait",
+  "prefer_related_applications": false,
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Sale (POS)",
+      "short_name": "POS",
+      "description": "Open Point of Sale billing terminal",
+      "url": "/?tab=pos",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Inventory",
+      "short_name": "Stock",
+      "description": "Check and manage inventory stock levels",
+      "url": "/?tab=inventory",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Financial Reports",
+      "short_name": "Reports",
+      "description": "View profit, revenue and expense reports",
+      "url": "/?tab=reports",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
