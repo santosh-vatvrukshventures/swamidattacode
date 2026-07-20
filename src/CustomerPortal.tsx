@@ -28,12 +28,13 @@ export default function CustomerPortal({ items, customersList, offers }: Custome
 
   const orderedCategories = useMemo(() => {
     const keys = Object.keys(groupedItems);
-    const priority = ["Single use", "Mangal Puja", "Party decoration"];
+    const priority = ["Disposables", "Mangal Puja Samagri", "Party Decoration Articles"];
     
     // Custom sort: prioritized first, then alphabetical for the rest
     return keys.sort((a, b) => {
-      const aIndex = priority.findIndex(p => p.toLowerCase() === a.toLowerCase());
-      const bIndex = priority.findIndex(p => p.toLowerCase() === b.toLowerCase());
+      // Use case-insensitive partial match to catch variations like "single use" or "disposable"
+      const aIndex = priority.findIndex(p => a.toLowerCase().includes(p.toLowerCase()) || p.toLowerCase().includes(a.toLowerCase()) || a.toLowerCase().includes('single') || a.toLowerCase().includes('disposabl'));
+      const bIndex = priority.findIndex(p => b.toLowerCase().includes(p.toLowerCase()) || p.toLowerCase().includes(b.toLowerCase()) || b.toLowerCase().includes('single') || b.toLowerCase().includes('disposabl'));
       
       if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
       if (aIndex !== -1) return -1;
@@ -204,6 +205,21 @@ export default function CustomerPortal({ items, customersList, offers }: Custome
             <Search className="w-5 h-5" />
             Find Items to Add
           </button>
+          
+          {/* Special Offers Section on Main Screen */}
+          {offers.length > 0 && (
+            <div className="space-y-3 pt-4 border-t border-slate-800/60 mt-4">
+              {offers.map(offer => (
+                <div key={offer.offer_id} className="bg-yellow-500/10 border border-yellow-500/50 rounded-xl p-3 text-center shadow-[0_0_15px_rgba(234,179,8,0.15)] animate-pulse">
+                  <h3 className="text-yellow-400 font-bold text-xs sm:text-sm flex items-center justify-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    {offer.text}
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </h3>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Cart */}
