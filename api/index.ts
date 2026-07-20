@@ -1340,29 +1340,6 @@ app.put("/api/sales/:sale_id", async (req, res) => {
   res.json({ success: true, mode: "local" });
 });
 
-// API: Reset Database to Seed Parameters
-app.post("/api/reset", async (req, res) => {
-  const db = await getMongoDb();
-  if (db) {
-    try {
-      await db.collection("items").deleteMany({});
-      await db.collection("expenses").deleteMany({});
-      await db.collection("sales").deleteMany({});
-
-      await db.collection("items").insertMany(SEED_ITEMS);
-      await db.collection("expenses").insertMany(SEED_EXPENSES);
-      await db.collection("sales").insertMany(SEED_SALES);
-    } catch (err) {
-      console.error("Failed to perform complete Atlas reset:", err);
-    }
-  }
-
-  writeLocalData("items", SEED_ITEMS);
-  writeLocalData("expenses", SEED_EXPENSES);
-  writeLocalData("sales", SEED_SALES);
-
-  res.json({ success: true, message: "System datasets reset to default seed parameters." });
-});
 
 // Delete Product
 app.delete("/api/items/:item_id", async (req, res) => {

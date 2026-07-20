@@ -1145,18 +1145,6 @@ export default function App() {
     }
   };
 
-  // Reset to default seed parameters
-  const handleResetDb = async () => {
-    if (!confirm("Are you sure you want to reset the database? This restores seed data and wipes edits.")) return;
-    try {
-      const res = await fetch("/api/reset", { method: "POST" });
-      const data = await res.json();
-      addLog(data.message);
-      fetchAllData();
-    } catch (err) {
-      addLog("Database reset failed.");
-    }
-  };
 
   // Financial Insights Calculations
   const getRevenue = () => sales.reduce((t, s) => t + s.net_amount_payable, 0);
@@ -2066,12 +2054,6 @@ export default function App() {
                         >
                           <Plus className="w-4 h-4" />
                           New Product / Item
-                        </button>
-                        <button
-                          onClick={handleResetDb}
-                          className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 px-3 py-2 rounded-lg text-xs font-bold"
-                        >
-                          Reset DB to Default Seeds
                         </button>
                       </div>
                     </div>
