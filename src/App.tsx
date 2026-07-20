@@ -97,7 +97,7 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [inventoryView, setInventoryView] = useState<"table" | "cards">("table");
   const [posSearchQuery, setPosSearchQuery] = useState("");
-  const [inventorySortKey, setInventorySortKey] = useState<"category" | "stock" | null>(null);
+  const [inventorySortKey, setInventorySortKey] = useState<"category" | "stock" | "name" | null>(null);
   const [inventorySortDirection, setInventorySortDirection] = useState<"asc" | "desc">("asc");
   const [inwardSortKey, setInwardSortKey] = useState<"supplier" | "item" | null>(null);
   const [inwardSortDirection, setInwardSortDirection] = useState<"asc" | "desc">("asc");
@@ -1203,6 +1203,13 @@ export default function App() {
       if (valA > valB) return inventorySortDirection === "asc" ? 1 : -1;
       return 0;
     }
+    if (inventorySortKey === "name") {
+      const valA = a.name.toLowerCase();
+      const valB = b.name.toLowerCase();
+      if (valA < valB) return inventorySortDirection === "asc" ? -1 : 1;
+      if (valA > valB) return inventorySortDirection === "asc" ? 1 : -1;
+      return 0;
+    }
     if (inventorySortKey === "stock") {
       const valA = a.current_stock_qty;
       const valB = b.current_stock_qty;
@@ -2021,7 +2028,22 @@ export default function App() {
                           <table className="w-full text-left text-xs">
                             <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider text-[10px] font-bold border-b border-slate-800">
                               <tr>
-                                <th className="px-4 py-3">Product Name / ID</th>
+                                <th 
+                                  className="px-4 py-3 cursor-pointer hover:bg-slate-900 transition-colors select-none"
+                                  onClick={() => handleInventorySort("name")}
+                                >
+                                  <div className="flex items-center gap-1.5">
+                                    <span>Product Name / ID</span>
+                                    <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${
+                                      inventorySortKey === "name" ? "text-indigo-400" : "text-slate-600"
+                                    }`} />
+                                    {inventorySortKey === "name" && (
+                                      <span className="text-[8px] text-indigo-400 lowercase font-mono">
+                                        ({inventorySortDirection})
+                                      </span>
+                                    )}
+                                  </div>
+                                </th>
                                 <th 
                                   className="px-4 py-3 cursor-pointer hover:bg-slate-900 transition-colors select-none"
                                   onClick={() => handleInventorySort("category")}
