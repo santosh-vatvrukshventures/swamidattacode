@@ -7,3 +7,5 @@ When completing a feature implementation or finalizing changes, you must ALWAYS 
 4. **Vercel**: Deploy the changes to Vercel using `npx vercel --prod --yes` (ensure the `PATH` is exported appropriately for the node version if required).
 5. **Mobile/Capacitor**: Sync the Capacitor Android project by running `npx cap sync android`.
 6. Explicitly inform the user that all 5 of these syncs/deployments have been fully completed.
+
+- After completing any task or making code changes in the Swamidatta-APP, you must automatically commit the changes and push them to the GitHub repository.

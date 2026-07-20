@@ -74,3 +74,8 @@ export interface CustomerOrder {
 
 export type WorkbenchTab = 'simulator' | 'rules' | 'models' | 'flutter_ui';
 export type SimulatorView = 'login' | 'sales' | 'inward' | 'expense' | 'reports' | 'inventory' | 'analytics_reports';
+export interface Offer {
+  offer_id: string;
+  text: string;
+  created_at: string;
+}

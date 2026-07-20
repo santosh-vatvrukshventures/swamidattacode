@@ -1,30 +1,30 @@
 import React, { useState, useMemo } from 'react';
-import { ShoppingCart, Plus, Minus, Search, User, Smartphone, Send, Check } from 'lucide-react';
-import { Item, CustomerOrderItem } from './types';
+import { ShoppingCart, Plus, Minus, Search, User, Smartphone, Send, Check, X, Sparkles } from 'lucide-react';
+import { Item, CustomerOrderItem, Offer } from './types';
 
 interface CustomerPortalProps {
   items: Item[];
   customersList: string[];
+  offers: Offer[];
 }
 
-export default function CustomerPortal({ items, customersList }: CustomerPortalProps) {
+export default function CustomerPortal({ items, customersList, offers }: CustomerPortalProps) {
   const [customerName, setCustomerName] = useState("");
   const [contactNumber, setContactNumber] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<CustomerOrderItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [showItemSelectorModal, setShowItemSelectorModal] = useState(false);
   
-  // Fuzzy search for items
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    const query = searchQuery.toLowerCase();
-    return items.filter(
-      (itm) =>
-        itm.name.toLowerCase().includes(query) ||
-        itm.category.toLowerCase().includes(query)
-    ).slice(0, 15);
-  }, [searchQuery, items]);
+  // Group items by category for the modal
+  const groupedItems = useMemo(() => {
+    const groups: Record<string, Item[]> = {};
+    items.forEach(item => {
+      if (!groups[item.category]) groups[item.category] = [];
+      groups[item.category].push(item);
+    });
+    return groups;
+  }, [items]);
 
   const addToCart = (item: Item) => {
     const existing = cart.find((c) => c.item_id === item.item_id);
@@ -33,7 +33,6 @@ export default function CustomerPortal({ items, customersList }: CustomerPortalP
     } else {
       setCart([...cart, { item_id: item.item_id, name: item.name, qty: 1 }]);
     }
-    setSearchQuery("");
   };
 
   const setCartItemQty = (itemId: string, newQty: number) => {
@@ -120,15 +119,17 @@ export default function CustomerPortal({ items, customersList }: CustomerPortalP
       <div className="max-w-md mx-auto p-4 space-y-6">
         {/* Customer Details */}
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-4">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <User className="w-4 h-4 text-indigo-400" />
-            Your Details
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <User className="w-4 h-4 text-indigo-400" />
+              Your Details <span className="text-rose-500">*</span>
+            </h3>
+          </div>
           <div className="space-y-3">
             <div className="relative">
               <input
                 type="text"
-                placeholder="Full Name"
+                placeholder="Full Name (Required)"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 pl-10"
@@ -157,7 +158,7 @@ export default function CustomerPortal({ items, customersList }: CustomerPortalP
             <div className="relative">
               <input
                 type="tel"
-                placeholder="Contact Number (e.g., 9876543210)"
+                placeholder="Contact Number (Required)"
                 value={contactNumber}
                 onChange={(e) => setContactNumber(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 pl-10"
@@ -167,45 +168,16 @@ export default function CustomerPortal({ items, customersList }: CustomerPortalP
           </div>
         </div>
 
-        {/* Item Search */}
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-4">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <Search className="w-4 h-4 text-indigo-400" />
-            Find Items
-          </h3>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search products by name or category..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 pl-10"
-            />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          </div>
-
-          {searchQuery.trim() && (
-            <div className="space-y-2 mt-3 max-h-60 overflow-y-auto custom-scrollbar pr-2">
-              {searchResults.length === 0 ? (
-                <div className="text-center text-xs text-slate-500 py-4">No items found matching "{searchQuery}"</div>
-              ) : (
-                searchResults.map(item => (
-                  <div key={item.item_id} className="flex items-center justify-between bg-slate-950 p-3 rounded-lg border border-slate-800">
-                    <div className="pr-3">
-                      <h4 className="text-sm font-bold text-slate-200">{item.name}</h4>
-                      <p className="text-[10px] text-slate-500">{item.category}</p>
-                    </div>
-                    <button
-                      onClick={() => addToCart(item)}
-                      className="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-lg shrink-0 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
+        {/* Item Selection Button */}
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-4 text-center">
+          <p className="text-xs text-slate-400 mb-2">Ready to order? Browse our full catalog.</p>
+          <button
+            onClick={() => setShowItemSelectorModal(true)}
+            className="w-full bg-indigo-600/20 border border-indigo-500/50 hover:bg-indigo-600/40 text-indigo-300 font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <Search className="w-5 h-5" />
+            Find Items to Add
+          </button>
         </div>
 
         {/* Cart */}
@@ -217,7 +189,7 @@ export default function CustomerPortal({ items, customersList }: CustomerPortalP
           
           {cart.length === 0 ? (
             <div className="text-center py-8 text-slate-500 text-sm">
-              Your cart is empty. Search above to add items.
+              Your cart is empty. Click "Find Items" above to add products.
             </div>
           ) : (
             <div className="space-y-2">
@@ -268,7 +240,7 @@ export default function CustomerPortal({ items, customersList }: CustomerPortalP
           <div className="max-w-md mx-auto">
             <button
               onClick={handleSubmitOrder}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !customerName.trim() || !contactNumber.trim()}
               className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-lg py-4 rounded-xl shadow-2xl shadow-indigo-500/20 flex items-center justify-center gap-2 transition-all"
             >
               {isSubmitting ? (
@@ -283,6 +255,85 @@ export default function CustomerPortal({ items, customersList }: CustomerPortalP
           </div>
         </div>
       )}
+
+      {/* Find Items Modal Popup */}
+      {showItemSelectorModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[99999] flex flex-col items-center p-4 sm:p-6 overflow-hidden">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
+            
+            <div className="flex justify-between items-center p-4 border-b border-slate-800 shrink-0">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Search className="w-5 h-5 text-indigo-400" />
+                Select Items
+              </h2>
+              <button 
+                onClick={() => setShowItemSelectorModal(false)}
+                className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+              
+              {/* Special Offers Section */}
+              {offers.length > 0 && (
+                <div className="space-y-3 mb-6">
+                  {offers.map(offer => (
+                    <div key={offer.offer_id} className="bg-yellow-500/10 border border-yellow-500/50 rounded-xl p-4 text-center shadow-[0_0_15px_rgba(234,179,8,0.15)] animate-pulse">
+                      <h3 className="text-yellow-400 font-bold text-sm sm:text-base flex items-center justify-center gap-2">
+                        <Sparkles className="w-4 h-4" />
+                        {offer.text}
+                        <Sparkles className="w-4 h-4" />
+                      </h3>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Categorized Items */}
+              {Object.keys(groupedItems).sort().map(category => (
+                <div key={category} className="space-y-3">
+                  <h3 className="text-sm font-bold text-indigo-300 uppercase tracking-widest border-b border-slate-800 pb-2">
+                    {category}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {groupedItems[category].map(item => {
+                      const cartItem = cart.find(c => c.item_id === item.item_id);
+                      return (
+                        <div key={item.item_id} className="bg-slate-950 border border-slate-800 p-3 rounded-lg flex items-center justify-between">
+                          <div className="pr-2 truncate">
+                            <h4 className="text-sm font-bold text-slate-200 truncate">{item.name}</h4>
+                            {cartItem && (
+                              <p className="text-[10px] text-emerald-400 mt-0.5">In Cart: {cartItem.qty}</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => addToCart(item)}
+                            className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/30 hover:border-indigo-500 p-2 rounded-lg shrink-0 transition-colors"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-4 border-t border-slate-800 shrink-0">
+              <button 
+                onClick={() => setShowItemSelectorModal(false)}
+                className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-colors"
+              >
+                Done (View Cart)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

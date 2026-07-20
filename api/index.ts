@@ -81,9 +81,10 @@ const DB_FILES = {
   suppliers: path.join(process.cwd(), "suppliers_db.json"),
   expense_categories: path.join(process.cwd(), "expense_categories_db.json"),
   customer_orders: path.join(process.cwd(), "customer_orders_db.json"),
+  offers: path.join(process.cwd(), "offers_db.json"),
 };
 
-function readLocalData(key: "items" | "categories" | "expenses" | "sales" | "inwards" | "customers" | "suppliers" | "expense_categories" | "customer_orders") {
+function readLocalData(key: "items" | "categories" | "expenses" | "sales" | "inwards" | "customers" | "suppliers" | "expense_categories" | "customer_orders" | "offers") {
   const filePath = DB_FILES[key];
   if (!fs.existsSync(filePath)) {
     let initial;
@@ -107,6 +108,7 @@ function readLocalData(key: "items" | "categories" | "expenses" | "sales" | "inw
       initial = uniqueExpCats.map(c => ({ name: c }));
     }
     else if (key === "customer_orders") initial = [];
+    else if (key === "offers") initial = [];
     else initial = SEED_INWARDS;
     
     // Check if we are running in Vercel to avoid read-only system errors
@@ -128,7 +130,7 @@ function readLocalData(key: "items" | "categories" | "expenses" | "sales" | "inw
   }
 }
 
-function writeLocalData(key: "items" | "categories" | "expenses" | "sales" | "inwards" | "customers" | "suppliers" | "expense_categories" | "customer_orders", data: any) {
+function writeLocalData(key: "items" | "categories" | "expenses" | "sales" | "inwards" | "customers" | "suppliers" | "expense_categories" | "customer_orders" | "offers", data: any) {
   try {
     // Check if we are running in Vercel to avoid read-only system errors
     if (process.env.VERCEL) {
@@ -190,6 +192,7 @@ async function getMongoDb(): Promise<Db | null> {
     const hasSuppliers = collections.some(c => c.name === "suppliers");
     const hasExpenseCategories = collections.some(c => c.name === "expense_categories");
     const hasCustomerOrders = collections.some(c => c.name === "customer_orders");
+    const hasOffers = collections.some(c => c.name === "offers");
 
     if (!hasItems || (await dbInstance.collection("items").countDocuments()) === 0) {
       await dbInstance.collection("items").insertMany(SEED_ITEMS);
@@ -246,6 +249,10 @@ async function getMongoDb(): Promise<Db | null> {
     
     if (!hasCustomerOrders && (await dbInstance.collection("customer_orders").countDocuments()) === 0) {
        // Do nothing, just ensure it exists if we want to initialize it empty
+    }
+    
+    if (!hasOffers && (await dbInstance.collection("offers").countDocuments()) === 0) {
+       // Empty init
     }
 
     console.log("MongoDB Collections Initialized.");
@@ -1575,6 +1582,60 @@ app.delete("/api/customer-orders/:id", async (req, res) => {
   const orders = readLocalData("customer_orders");
   const filtered = orders.filter((o: any) => o.order_id !== id);
   writeLocalData("customer_orders", filtered);
+  res.json(filtered);
+});
+
+// ----------------------------------------------------
+// Special Offers Endpoints
+// ----------------------------------------------------
+
+app.get("/api/offers", async (req, res) => {
+  const db = await getMongoDb();
+  if (db) {
+    try {
+      const offers = await db.collection("offers").find({}).toArray();
+      return res.json(offers);
+    } catch (e) {
+      console.error("Error fetching offers from Mongo", e);
+    }
+  }
+  const localData = readLocalData("offers");
+  res.json(localData);
+});
+
+app.post("/api/offers", async (req, res) => {
+  const newOffer = req.body;
+  const db = await getMongoDb();
+  if (db) {
+    try {
+      await db.collection("offers").insertOne(newOffer);
+      const offers = await db.collection("offers").find({}).toArray();
+      return res.json(offers);
+    } catch (e) {
+      console.error("Error adding offer to Mongo", e);
+    }
+  }
+  const offers = readLocalData("offers");
+  offers.push(newOffer);
+  writeLocalData("offers", offers);
+  res.json(offers);
+});
+
+app.delete("/api/offers/:id", async (req, res) => {
+  const { id } = req.params;
+  const db = await getMongoDb();
+  if (db) {
+    try {
+      await db.collection("offers").deleteOne({ offer_id: id });
+      const offers = await db.collection("offers").find({}).toArray();
+      return res.json(offers);
+    } catch (e) {
+      console.error("Error deleting offer from Mongo", e);
+    }
+  }
+  const offers = readLocalData("offers");
+  const filtered = offers.filter((o: any) => o.offer_id !== id);
+  writeLocalData("offers", filtered);
   res.json(filtered);
 });
 

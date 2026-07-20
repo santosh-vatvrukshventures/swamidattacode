@@ -41,7 +41,7 @@ import {
   Settings,
   Database
 } from "lucide-react";
-import { Item, Sale, Expense, Inward, CustomerOrder, CustomerOrderItem } from "./types";
+import { Item, Sale, Expense, Inward, CustomerOrder, CustomerOrderItem, Offer } from "./types";
 import logoNav from "./assets/images/regenerated_image_1783886868730.webp";
 import logoHeader from "./assets/images/regenerated_image_1783886867135.webp";
 import CustomerPortal from "./CustomerPortal";
@@ -72,6 +72,8 @@ export default function App() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [inwards, setInwards] = useState<Inward[]>([]);
   const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [newOfferText, setNewOfferText] = useState("");
   const [loading, setLoading] = useState(true);
 
   // Purchases (Inward) Form State
@@ -313,6 +315,10 @@ export default function App() {
       const ordersRes = await fetch("/api/customer-orders");
       const ordersData = await ordersRes.json();
       setCustomerOrders(ordersData);
+
+      const offersRes = await fetch("/api/offers");
+      const offersData = await offersRes.json();
+      setOffers(offersData);
     } catch (err) {
       console.error("Fetch syncing error:", err);
       addLog("Database sync failure. Operating in offline storage mode.");
@@ -1303,7 +1309,7 @@ export default function App() {
   }
 
   if (isCustomerMode) {
-    return <CustomerPortal items={items} customersList={customersList} />;
+    return <CustomerPortal items={items} customersList={customersList} offers={offers} />;
   }
 
   return (
@@ -2979,6 +2985,67 @@ export default function App() {
                 {/* ONLINE ORDERS (STAFF) */}
                 {activeTab === "online_orders" && (
                   <div className="space-y-6">
+                    {/* MANAGE SPECIAL OFFERS PANEL */}
+                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-4">
+                      <div>
+                        <h2 className="text-lg font-black text-white flex items-center gap-2">
+                          <Sparkles className="w-5 h-5 text-yellow-400" />
+                          Manage Special Offers
+                        </h2>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-0.5">Broadcast highlights to customers</p>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="e.g. Buy 5 Tissue papers and get ₹20 Off"
+                          value={newOfferText}
+                          onChange={(e) => setNewOfferText(e.target.value)}
+                          className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                        />
+                        <button
+                          onClick={async () => {
+                            if (!newOfferText.trim()) return;
+                            try {
+                              const res = await fetch("/api/offers", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ offer_id: crypto.randomUUID(), text: newOfferText.trim(), created_at: new Date().toISOString() })
+                              });
+                              if (res.ok) {
+                                setNewOfferText("");
+                                fetchAllData();
+                              }
+                            } catch (e) { console.error(e); }
+                          }}
+                          className="bg-yellow-500 hover:bg-yellow-400 text-yellow-950 font-bold px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                        >
+                          <Plus className="w-4 h-4" /> Add Offer
+                        </button>
+                      </div>
+
+                      {offers.length > 0 && (
+                        <div className="space-y-2 mt-4">
+                          {offers.map(offer => (
+                            <div key={offer.offer_id} className="flex justify-between items-center bg-slate-950 border border-slate-800/60 p-3 rounded-lg">
+                              <span className="text-yellow-400/90 text-sm font-medium">{offer.text}</span>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/offers/${offer.offer_id}`, { method: "DELETE" });
+                                    if (res.ok) fetchAllData();
+                                  } catch (e) { console.error(e); }
+                                }}
+                                className="text-slate-500 hover:text-red-400 hover:bg-red-400/10 p-1.5 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex items-center justify-between bg-slate-900 border border-slate-800 p-4 rounded-xl">
                       <div>
                         <h2 className="text-lg font-black text-white flex items-center gap-2">
