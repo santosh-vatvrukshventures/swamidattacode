@@ -1034,11 +1034,6 @@ export default function App() {
 
   // Edit Expense Voucher
   const handleEditExpense = async (updatedExpense: Expense) => {
-    if (updatedExpense.amount <= 0) {
-      await handleDeleteExpense(updatedExpense.expense_id);
-      return;
-    }
-
     try {
       const res = await fetch(`/api/expenses/${updatedExpense.expense_id}`, {
         method: "PUT",
@@ -2630,6 +2625,17 @@ export default function App() {
                                       title="Edit expense details"
                                     >
                                       <Edit className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        if (confirm("Are you sure you want to permanently delete this expense voucher?")) {
+                                          handleDeleteExpense(exp.expense_id);
+                                        }
+                                      }}
+                                      className="p-1 text-red-400 hover:text-red-300 hover:bg-red-950/40 rounded transition-colors ml-1"
+                                      title="Delete voucher"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                   </div>
                                 </td>
