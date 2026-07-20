@@ -2342,7 +2342,8 @@ export default function App() {
                                       type="button"
                                       onClick={() => {
                                         setEditingItem({ ...itm });
-                                        setShowNewItemModal(true);
+                                        setOriginalEditingItemId(itm.item_id);
+                                        setIsEditIdManuallyEdited(false);
                                       }}
                                       className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent hover:border-slate-700 rounded transition-colors"
                                       title="Edit details"
