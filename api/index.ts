@@ -682,6 +682,8 @@ app.post("/api/suppliers", async (req, res) => {
 app.put("/api/items/:old_item_id", async (req, res) => {
   const { old_item_id } = req.params;
   const newItem = req.body;
+  delete newItem._id; // Prevent MongoDB immutable field error
+  
   const new_item_id = newItem.item_id;
 
   const db = await getMongoDb();
@@ -1200,6 +1202,7 @@ app.delete("/api/inwards/:inward_id", async (req, res) => {
 app.put("/api/expenses/:expense_id", async (req, res) => {
   const { expense_id } = req.params;
   const updatedExpense = req.body;
+  delete updatedExpense._id;
   const db = await getMongoDb();
 
   if (db) {
@@ -1234,6 +1237,7 @@ app.put("/api/expenses/:expense_id", async (req, res) => {
 app.put("/api/inwards/:inward_id", async (req, res) => {
   const { inward_id } = req.params;
   const updatedInward = req.body;
+  delete updatedInward._id;
   const db = await getMongoDb();
 
   let oldInward: any = null;
@@ -1322,6 +1326,7 @@ app.put("/api/inwards/:inward_id", async (req, res) => {
 app.put("/api/sales/:sale_id", async (req, res) => {
   const { sale_id } = req.params;
   const updatedSale = req.body;
+  delete updatedSale._id;
   const db = await getMongoDb();
 
   // Find previous sale voucher to figure out inventory differences
@@ -1549,6 +1554,7 @@ app.post("/api/customer-orders", async (req, res) => {
 app.put("/api/customer-orders/:id", async (req, res) => {
   const { id } = req.params;
   const updatedData = req.body;
+  delete updatedData._id;
   const db = await getMongoDb();
   if (db) {
     try {
