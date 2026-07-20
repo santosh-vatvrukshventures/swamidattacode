@@ -575,7 +575,27 @@ export default function App() {
   const handleRestock = async () => {
     if (!showRestockModal) return;
     try {
-      const finalQty = restockMode === "reduce" ? -restockQty : restockQty;
+      const finalQty = (restockMode === "reduce" || restockMode === "wastage") ? -restockQty : restockQty;
+
+      if (restockMode === "wastage") {
+        const costLost = restockQty * showRestockModal.purchase_price;
+        const expenseId = `EXP_${Date.now().toString().slice(-6)}`;
+        const newExpense: Expense = {
+          expense_id: expenseId,
+          date: new Date().toISOString(),
+          category: "Inventory Wastage",
+          amount: costLost,
+          remarks: `Logged wastage of ${restockQty} units of ${showRestockModal.name} (${showRestockModal.item_id})`
+        };
+
+        const expRes = await fetch("/api/expenses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newExpense)
+        });
+        if (!expRes.ok) throw new Error("Failed to create wastage expense");
+      }
+
       const res = await fetch("/api/items/restock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -585,7 +605,10 @@ export default function App() {
         })
       });
       await res.json();
-      if (restockMode === "reduce") {
+      
+      if (restockMode === "wastage") {
+        addLog(`Logged wastage: Reduced -${restockQty} units from ${showRestockModal.name} and created expense.`);
+      } else if (restockMode === "reduce") {
         addLog(`Logged stock reduction: Reduced -${restockQty} units from ${showRestockModal.name}.`);
       } else {
         addLog(`Logged stock inward: Added +${restockQty} units to ${showRestockModal.name}.`);
@@ -595,6 +618,7 @@ export default function App() {
     } catch (err) {
       console.error(err);
       addLog("Failed to log stock adjustment.");
+      alert("Failed to log stock adjustment.");
     }
   };
 
@@ -1074,60 +1098,8 @@ export default function App() {
       alert("Failed to process bad debt write-off.");
     }
   };
-  // Log Inventory Wastage
-  const handleLogWastage = async (item: Item) => {
-    const qtyStr = prompt(`How many units of ${item.name} were damaged/wasted? (Current stock: ${item.current_stock_qty})`);
-    if (!qtyStr) return;
-    const qtyLost = parseInt(qtyStr, 10);
-    if (isNaN(qtyLost) || qtyLost <= 0) {
-      alert("Invalid quantity.");
-      return;
-    }
-    if (qtyLost > item.current_stock_qty) {
-      alert("Cannot log wastage greater than current stock.");
-      return;
-    }
+  // Deprecated direct handleLogWastage function (moved to modal)
 
-    const costLost = qtyLost * item.purchase_price;
-    if (!confirm(`This will reduce stock by ${qtyLost} and log an Inventory Wastage expense of ₹${costLost.toFixed(2)}. Proceed?`)) return;
-
-    const expenseId = `EXP_${Date.now().toString().slice(-6)}`;
-    const newExpense: Expense = {
-      expense_id: expenseId,
-      date: new Date().toISOString(),
-      category: "Inventory Wastage",
-      amount: costLost,
-      remarks: `Logged wastage of ${qtyLost} units of ${item.name} (${item.item_id})`
-    };
-
-    try {
-      const expRes = await fetch("/api/expenses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newExpense)
-      });
-      if (!expRes.ok) throw new Error("Failed to create wastage expense");
-
-      const updatedItem: Item = {
-        ...item,
-        current_stock_qty: item.current_stock_qty - qtyLost
-      };
-
-      const itemRes = await fetch(`/api/items/${item.item_id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedItem)
-      });
-      if (!itemRes.ok) throw new Error("Failed to update stock");
-
-      addLog(`Logged wastage for ${item.name}. Stock reduced by ${qtyLost}, expense created.`);
-      fetchAllData();
-    } catch (err) {
-      console.error("Wastage log error:", err);
-      addLog("Failed to process inventory wastage.");
-      alert("Failed to process inventory wastage.");
-    }
-  };
 
   // Edit Expense Voucher
   const handleEditExpense = async (updatedExpense: Expense) => {
@@ -2264,13 +2236,7 @@ export default function App() {
                                         >
                                           Adjust Stock
                                         </button>
-                                        <button
-                                          onClick={() => handleLogWastage(itm)}
-                                          className="bg-red-950/20 hover:bg-red-900/40 border border-red-900/60 hover:border-red-500/50 text-red-400 px-2.5 py-1.5 rounded text-[10px] font-bold tracking-wide uppercase transition-all"
-                                          title="Log damaged or lost stock as an expense"
-                                        >
-                                          Log Wastage
-                                        </button>
+
                                         <button
                                           type="button"
                                           onClick={() => {
@@ -2345,11 +2311,10 @@ export default function App() {
                               return (
                                 <div
                                   key={itm.item_id}
-                                  onClick={() => addToCart(itm)}
-                                  className={`p-3.5 rounded-xl flex flex-col justify-between cursor-pointer transition-all hover:translate-y-[-2px] border ${
+                                  className={`p-3.5 rounded-xl flex flex-col justify-between border ${
                                     isLowStock
-                                      ? "bg-red-950/20 border-red-900/60 hover:border-red-500/40"
-                                      : "bg-slate-900 border border-slate-800/60 hover:border-indigo-500/40"
+                                      ? "bg-red-950/20 border-red-900/60"
+                                      : "bg-slate-900 border-slate-800/60"
                                   }`}
                                 >
                                   <div>
@@ -2376,9 +2341,32 @@ export default function App() {
                                     </div>
                                   </div>
 
-                                  <div className="mt-3.5 pt-2 border-t border-slate-800/50 flex justify-between items-center text-[10px] text-slate-400">
+                                  <div className="mt-3.5 pt-2 border-t border-slate-800/50 flex justify-between items-center text-[10px] text-slate-400 mb-3">
                                     <span>Stock: <b className={isLowStock ? "text-red-400 font-bold" : "text-emerald-400 font-bold"}>{itm.current_stock_qty} pcs</b></span>
                                     <span className="text-[9px] text-indigo-400">Margin: ₹{activeMargin.toFixed(0)}</span>
+                                  </div>
+                                  <div className="flex gap-2 justify-end mt-auto">
+                                    <button
+                                      onClick={() => {
+                                        setShowRestockModal(itm);
+                                        setRestockQty(50);
+                                        setRestockMode("add");
+                                      }}
+                                      className="bg-slate-950 border border-slate-800 hover:border-indigo-500/50 text-indigo-400 px-3 py-1.5 rounded text-[10px] font-bold tracking-wide uppercase transition-all flex-1"
+                                    >
+                                      Adjust Stock
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingItem({ ...itm });
+                                        setShowNewItemModal(true);
+                                      }}
+                                      className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent hover:border-slate-700 rounded transition-colors"
+                                      title="Edit details"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </button>
                                   </div>
                                 </div>
                               );
@@ -3755,28 +3743,39 @@ export default function App() {
                 <label className="text-[9px] text-slate-400 uppercase tracking-widest font-semibold block mb-1.5">
                   Adjustment Type
                 </label>
-                <div className="grid grid-cols-2 bg-slate-950 p-0.5 rounded-lg border border-slate-800">
+                <div className="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
                   <button
                     type="button"
                     onClick={() => setRestockMode("add")}
-                    className={`py-1.5 text-[10px] font-bold rounded transition-all ${
+                    className={`py-1.5 text-[9px] font-bold rounded transition-all ${
                       restockMode === "add"
                         ? "bg-indigo-600 text-white"
                         : "text-slate-500 hover:text-slate-300"
                     }`}
                   >
-                    Add / Restock (+)
+                    Restock (+)
                   </button>
                   <button
                     type="button"
                     onClick={() => setRestockMode("reduce")}
-                    className={`py-1.5 text-[10px] font-bold rounded transition-all ${
+                    className={`py-1.5 text-[9px] font-bold rounded transition-all ${
                       restockMode === "reduce"
+                        ? "bg-amber-600 text-white"
+                        : "text-slate-500 hover:text-slate-300"
+                    }`}
+                  >
+                    Reduce (-)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRestockMode("wastage")}
+                    className={`py-1.5 text-[9px] font-bold rounded transition-all ${
+                      restockMode === "wastage"
                         ? "bg-red-600 text-white"
                         : "text-slate-500 hover:text-slate-300"
                     }`}
                   >
-                    Reduce / Damage (-)
+                    Wastage (-)
                   </button>
                 </div>
               </div>
@@ -3804,6 +3803,14 @@ export default function App() {
                     {restockMode === "add" ? "+" : "-"}{restockQty} units
                   </span>
                 </div>
+                {restockMode === "wastage" && (
+                  <div className="flex justify-between border-b border-slate-800/60 pb-1 mb-1 font-bold text-red-400">
+                    <span>Expense Generated:</span>
+                    <span className="font-mono">
+                      ₹{(restockQty * showRestockModal.purchase_price).toFixed(2)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between border-t border-slate-800/60 pt-1 mt-1 font-bold">
                   <span>Expected Stock:</span>
                   <span className="font-mono text-white">
@@ -3826,10 +3833,10 @@ export default function App() {
               <button
                 onClick={handleRestock}
                 className={`text-white text-xs font-bold px-3 py-2 rounded-lg transition-all ${
-                  restockMode === "add" ? "bg-indigo-600 hover:bg-indigo-500" : "bg-red-600 hover:bg-red-500"
+                  restockMode === "add" ? "bg-indigo-600 hover:bg-indigo-500" : restockMode === "wastage" ? "bg-red-600 hover:bg-red-500" : "bg-amber-600 hover:bg-amber-500"
                 }`}
               >
-                {restockMode === "add" ? "Confirm Add Stock" : "Confirm Reduce Stock"}
+                {restockMode === "add" ? "Confirm Add Stock" : restockMode === "wastage" ? "Confirm Log Wastage" : "Confirm Reduce Stock"}
               </button>
             </div>
           </div>
