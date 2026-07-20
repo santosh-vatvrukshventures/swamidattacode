@@ -133,6 +133,7 @@ export default function App() {
   const [isIdManuallyEdited, setIsIdManuallyEdited] = useState(false);
   const [showSettlementModal, setShowSettlementModal] = useState<Sale | null>(null);
   const [settlementAmount, setSettlementAmount] = useState<number>(0);
+  const [financialLedgerQuery, setFinancialLedgerQuery] = useState<"revenue" | "outstanding" | null>(null);
   
   // New Item Form State
   const [newItem, setNewItem] = useState({
@@ -3300,14 +3301,24 @@ export default function App() {
                           {/* Financial Summary KPI Cards - 5 columns */}
                           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                             
-                            <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                              <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold block mb-1">
-                                Total Revenue
-                              </span>
-                              <h3 className="text-base lg:text-lg font-black text-white font-mono">
-                                ₹{getRevenueForPeriod(filteredSalesList).toFixed(0)}
-                              </h3>
-                              <div className="text-[10px] text-emerald-400 font-medium flex items-center gap-1 mt-1">
+                            <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
+                              <div>
+                                <div className="flex justify-between items-start mb-1">
+                                  <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">
+                                    Total Revenue
+                                  </span>
+                                  <button
+                                    onClick={() => setFinancialLedgerQuery("revenue")}
+                                    className="text-[9px] flex items-center gap-1 text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 px-1.5 py-0.5 rounded transition-colors"
+                                  >
+                                    View Ledger
+                                  </button>
+                                </div>
+                                <h3 className="text-base lg:text-lg font-black text-white font-mono">
+                                  ₹{getRevenueForPeriod(filteredSalesList).toFixed(0)}
+                                </h3>
+                              </div>
+                              <div className="text-[10px] text-emerald-400 font-medium flex items-center gap-1 mt-2">
                                 <TrendingUp className="w-3 h-3" />
                                 <span>{filteredSalesList.length} POS sales</span>
                               </div>
@@ -3425,9 +3436,17 @@ export default function App() {
                               {/* Credit Outstanding (Udhaar Outstanding) */}
                               <div className="bg-slate-950 border border-red-950 p-3 rounded-lg flex items-center justify-between border-red-900/30">
                                 <div>
-                                  <span className="text-[9px] text-red-400 uppercase tracking-widest font-bold block mb-0.5">
-                                    Outstanding Udhaar
-                                  </span>
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="text-[9px] text-red-400 uppercase tracking-widest font-bold">
+                                      Outstanding Udhaar
+                                    </span>
+                                    <button
+                                      onClick={() => setFinancialLedgerQuery("outstanding")}
+                                      className="text-[9px] flex items-center gap-1 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-1.5 py-0.5 rounded transition-colors"
+                                    >
+                                      View Ledger
+                                    </button>
+                                  </div>
                                   <h4 className="text-sm lg:text-base font-bold text-red-400 font-mono">
                                     ₹{totalCreditOutstanding.toFixed(2)}
                                   </h4>
@@ -4540,6 +4559,118 @@ export default function App() {
                 className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-2 rounded-lg"
               >
                 Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3B. FINANCIAL LEDGER DRILL-DOWN MODAL */}
+      {financialLedgerQuery && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+          <div className="bg-slate-900 border border-slate-850 p-5 rounded-2xl max-w-4xl w-full space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex justify-between items-start">
+              <div>
+                <span className="text-[9px] uppercase tracking-wider text-indigo-400 font-bold">
+                  Financial Ledger Drill-Down
+                </span>
+                <h3 className="text-sm font-bold text-white mt-1">
+                  {financialLedgerQuery === "revenue" ? "Total Revenue - Sales Vouchers" : "Outstanding Udhaar - Unpaid Vouchers"}
+                </h3>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  {financialLedgerQuery === "revenue" 
+                    ? "Listing all sales vouchers that contribute to the total revenue for the selected period." 
+                    : "Listing all credit sales vouchers with pending balances for the selected period."}
+                </p>
+              </div>
+              <button
+                onClick={() => setFinancialLedgerQuery(null)}
+                className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto no-scrollbar border border-slate-800 rounded-xl bg-slate-950/40">
+              {(() => {
+                const salesPeriod = getFilteredSales();
+                const matchedSales = financialLedgerQuery === "revenue"
+                  ? salesPeriod
+                  : salesPeriod.filter(s => s.payment_mode === "Credit" && (s.net_amount_payable - (s.payment_received || 0)) > 0);
+
+                if (matchedSales.length === 0) {
+                  return (
+                    <div className="p-8 text-center text-sm text-slate-500 font-medium">
+                      No sales vouchers found for this ledger in the selected period.
+                    </div>
+                  );
+                }
+
+                return (
+                  <table className="w-full text-left text-xs text-slate-300">
+                    <thead className="sticky top-0 bg-slate-950 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-800/60 z-10">
+                      <tr>
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3">Voucher ID</th>
+                        <th className="px-4 py-3">Customer</th>
+                        <th className="px-4 py-3 text-right">Items</th>
+                        <th className="px-4 py-3 text-right">Net Amount</th>
+                        {financialLedgerQuery === "outstanding" && (
+                          <th className="px-4 py-3 text-right">Pending Balance</th>
+                        )}
+                        <th className="px-4 py-3">Mode</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {matchedSales.map((sal) => {
+                        const balance = sal.net_amount_payable - (sal.payment_received || 0);
+                        return (
+                          <tr key={sal.sale_id} className="hover:bg-slate-800/20 transition-colors">
+                            <td className="px-4 py-3 text-slate-400 whitespace-nowrap">
+                              {new Date(sal.date).toLocaleDateString()}
+                            </td>
+                            <td className="px-4 py-3 font-mono font-bold text-indigo-400 whitespace-nowrap">
+                              {sal.sale_id}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="font-semibold text-slate-200">{sal.customer_name}</div>
+                              <div className="text-[9px] uppercase tracking-wider text-slate-500">{sal.customer_type}</div>
+                            </td>
+                            <td className="px-4 py-3 text-right font-mono font-bold text-slate-300">
+                              {sal.items_sold.reduce((acc, item) => acc + item.qty_sold, 0)} units
+                            </td>
+                            <td className="px-4 py-3 text-right font-mono font-bold text-white">
+                              ₹{sal.net_amount_payable.toFixed(2)}
+                            </td>
+                            {financialLedgerQuery === "outstanding" && (
+                              <td className="px-4 py-3 text-right font-mono font-bold text-red-400">
+                                ₹{balance.toFixed(2)}
+                              </td>
+                            )}
+                            <td className="px-4 py-3">
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
+                                sal.payment_mode === "Cash" ? "bg-emerald-950/60 border border-emerald-800 text-emerald-400" :
+                                sal.payment_mode === "UPI" ? "bg-blue-950/60 border border-blue-850 text-blue-400" :
+                                "bg-amber-950/60 border border-amber-900 text-amber-400"
+                              }`}>
+                                {sal.payment_mode}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                );
+              })()}
+            </div>
+            
+            <div className="flex justify-end pt-2 border-t border-slate-800">
+              <button
+                onClick={() => setFinancialLedgerQuery(null)}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-4 py-2 rounded-lg transition-colors"
+              >
+                Close View
               </button>
             </div>
           </div>
