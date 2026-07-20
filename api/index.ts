@@ -146,7 +146,7 @@ function writeLocalData(key: "items" | "categories" | "expenses" | "sales" | "in
 // Lazy-loaded MongoDB Connection Managers
 let mongoClient: MongoClient | null = null;
 let dbInstance: Db | null = null;
-let isConnecting = false;
+let connectionPromise: Promise<Db | null> | null = null;
 let lastConnectionAttemptTime = 0;
 let lastConnectionError: any = null;
 const CONNECTION_COOLDOWN_MS = 25000; // 25 seconds cooldown before retrying connection to prevent blocking requests
@@ -159,8 +159,8 @@ async function getMongoDb(): Promise<Db | null> {
   if (dbInstance) {
     return dbInstance;
   }
-  if (isConnecting) {
-    return null; // Don't trigger multiple connections simultaneously
+  if (connectionPromise) {
+    return connectionPromise; // Wait for the ongoing connection attempt instead of returning null
   }
 
   // If we recently failed to connect, don't try again immediately to avoid hanging the app/Vercel functions
@@ -168,15 +168,16 @@ async function getMongoDb(): Promise<Db | null> {
     return null;
   }
 
-  try {
-    isConnecting = true;
-    lastConnectionAttemptTime = Date.now();
-    console.log("Connecting to MongoDB Atlas...");
-    mongoClient = new MongoClient(uri, {
-      serverSelectionTimeoutMS: 4000, // Fail fast (4 seconds) instead of hanging the serverless environment
-      connectTimeoutMS: 4000,
-    });
-    await mongoClient.connect();
+  lastConnectionAttemptTime = Date.now();
+  
+  connectionPromise = (async () => {
+    try {
+      console.log("Connecting to MongoDB Atlas...");
+      mongoClient = new MongoClient(uri, {
+        serverSelectionTimeoutMS: 4000, // Fail fast (4 seconds) instead of hanging the serverless environment
+        connectTimeoutMS: 4000,
+      });
+      await mongoClient.connect();
     dbInstance = mongoClient.db();
     lastConnectionError = null; // Clear any previous error on success
     console.log("MongoDB connection established.");
@@ -262,8 +263,11 @@ async function getMongoDb(): Promise<Db | null> {
     console.error("MongoDB Atlas connection failure:", err);
     return null;
   } finally {
-    isConnecting = false;
+    connectionPromise = null;
   }
+  })();
+
+  return connectionPromise;
 }
 
 // API: Connection Status
