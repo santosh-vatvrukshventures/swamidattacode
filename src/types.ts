@@ -20,6 +20,7 @@ export interface SoldItem {
   qty_sold: number;
   unit_price: number;
   total_item_price: number;
+  purchase_cost_at_time?: number;
 }
 
 export interface Sale {

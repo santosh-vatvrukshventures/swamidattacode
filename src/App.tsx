@@ -519,7 +519,8 @@ export default function App() {
         name: c.item.name,
         qty_sold: c.qty,
         unit_price: price,
-        total_item_price: price * c.qty
+        total_item_price: price * c.qty,
+        purchase_cost_at_time: c.item.purchase_price
       };
     });
 
@@ -1032,6 +1033,101 @@ export default function App() {
       addLog("Failed to update sale voucher.");
     }
   };
+  // Write Off Bad Debt
+  const handleWriteOffDebt = async (sale: Sale, badDebtAmount: number) => {
+    if (!confirm(`Are you sure you want to write off ₹${badDebtAmount.toFixed(2)} as Bad Debt for voucher ${sale.sale_id}? This will log an expense.`)) return;
+
+    const expenseId = `EXP_${Date.now().toString().slice(-6)}`;
+    const newExpense: Expense = {
+      expense_id: expenseId,
+      date: new Date().toISOString(),
+      category: "Bad Debt Write-off",
+      amount: badDebtAmount,
+      remarks: `Write-off unpaid Udhaar for Sale Voucher ${sale.sale_id} (${sale.customer_name})`
+    };
+
+    try {
+      const expRes = await fetch("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newExpense)
+      });
+      if (!expRes.ok) throw new Error("Failed to create bad debt expense");
+
+      const updatedSale: Sale = {
+        ...sale,
+        payment_received: sale.net_amount_payable
+      };
+
+      const saleRes = await fetch(`/api/sales/${sale.sale_id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedSale)
+      });
+      if (!saleRes.ok) throw new Error("Failed to update sale voucher");
+
+      addLog(`Wrote off ₹${badDebtAmount.toFixed(2)} for ${sale.sale_id}. Bad Debt expense created.`);
+      fetchAllData();
+    } catch (err) {
+      console.error("Write off error:", err);
+      addLog("Failed to process bad debt write-off.");
+      alert("Failed to process bad debt write-off.");
+    }
+  };
+  // Log Inventory Wastage
+  const handleLogWastage = async (item: Item) => {
+    const qtyStr = prompt(`How many units of ${item.name} were damaged/wasted? (Current stock: ${item.current_stock_qty})`);
+    if (!qtyStr) return;
+    const qtyLost = parseInt(qtyStr, 10);
+    if (isNaN(qtyLost) || qtyLost <= 0) {
+      alert("Invalid quantity.");
+      return;
+    }
+    if (qtyLost > item.current_stock_qty) {
+      alert("Cannot log wastage greater than current stock.");
+      return;
+    }
+
+    const costLost = qtyLost * item.purchase_price;
+    if (!confirm(`This will reduce stock by ${qtyLost} and log an Inventory Wastage expense of ₹${costLost.toFixed(2)}. Proceed?`)) return;
+
+    const expenseId = `EXP_${Date.now().toString().slice(-6)}`;
+    const newExpense: Expense = {
+      expense_id: expenseId,
+      date: new Date().toISOString(),
+      category: "Inventory Wastage",
+      amount: costLost,
+      remarks: `Logged wastage of ${qtyLost} units of ${item.name} (${item.item_id})`
+    };
+
+    try {
+      const expRes = await fetch("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newExpense)
+      });
+      if (!expRes.ok) throw new Error("Failed to create wastage expense");
+
+      const updatedItem: Item = {
+        ...item,
+        current_stock_qty: item.current_stock_qty - qtyLost
+      };
+
+      const itemRes = await fetch(`/api/items/${item.item_id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedItem)
+      });
+      if (!itemRes.ok) throw new Error("Failed to update stock");
+
+      addLog(`Logged wastage for ${item.name}. Stock reduced by ${qtyLost}, expense created.`);
+      fetchAllData();
+    } catch (err) {
+      console.error("Wastage log error:", err);
+      addLog("Failed to process inventory wastage.");
+      alert("Failed to process inventory wastage.");
+    }
+  };
 
   // Edit Expense Voucher
   const handleEditExpense = async (updatedExpense: Expense) => {
@@ -1096,8 +1192,10 @@ export default function App() {
   const getCOGS = () => {
     return sales.reduce((total, s) => {
       const saleCOGS = s.items_sold.reduce((st, si) => {
-        const itemInfo = items.find((i) => i.item_id === si.item_id);
-        const buyPrice = itemInfo ? itemInfo.purchase_price : si.unit_price * 0.6; // fallback 60% margin
+        const buyPrice = si.purchase_cost_at_time ?? (() => {
+          const itemInfo = items.find((i) => i.item_id === si.item_id);
+          return itemInfo ? itemInfo.purchase_price : si.unit_price * 0.6;
+        })();
         return st + buyPrice * si.qty_sold;
       }, 0);
       return total + saleCOGS;
@@ -1150,8 +1248,10 @@ export default function App() {
   const getCOGSForPeriod = (filtered = getFilteredSales()) => {
     return filtered.reduce((total, s) => {
       const saleCOGS = s.items_sold.reduce((st, si) => {
-        const itemInfo = items.find((i) => i.item_id === si.item_id);
-        const buyPrice = itemInfo ? itemInfo.purchase_price : si.unit_price * 0.6;
+        const buyPrice = si.purchase_cost_at_time ?? (() => {
+          const itemInfo = items.find((i) => i.item_id === si.item_id);
+          return itemInfo ? itemInfo.purchase_price : si.unit_price * 0.6;
+        })();
         return st + buyPrice * si.qty_sold;
       }, 0);
       return total + saleCOGS;
@@ -2165,6 +2265,13 @@ export default function App() {
                                           Adjust Stock
                                         </button>
                                         <button
+                                          onClick={() => handleLogWastage(itm)}
+                                          className="bg-red-950/20 hover:bg-red-900/40 border border-red-900/60 hover:border-red-500/50 text-red-400 px-2.5 py-1.5 rounded text-[10px] font-bold tracking-wide uppercase transition-all"
+                                          title="Log damaged or lost stock as an expense"
+                                        >
+                                          Log Wastage
+                                        </button>
+                                        <button
                                           type="button"
                                           onClick={() => {
                                             setEditingItem({ ...itm });
@@ -2411,15 +2518,24 @@ export default function App() {
                                   <td className="px-4 py-3 text-right">
                                     <div className="flex items-center justify-end gap-1.5">
                                       {!isSettled && (
-                                        <button
-                                          onClick={() => {
-                                            setShowSettlementModal(sal);
-                                            setSettlementAmount(balance);
-                                          }}
-                                          className="bg-red-950/40 hover:bg-red-900/40 border border-red-800 hover:border-red-500/50 text-red-400 px-2.5 py-1.5 rounded text-[10px] font-bold tracking-wide uppercase transition-all"
-                                        >
-                                          Register Pay
-                                        </button>
+                                        <>
+                                          <button
+                                            onClick={() => {
+                                              setShowSettlementModal(sal);
+                                              setSettlementAmount(balance);
+                                            }}
+                                            className="bg-red-950/40 hover:bg-red-900/40 border border-red-800 hover:border-red-500/50 text-red-400 px-2.5 py-1.5 rounded text-[10px] font-bold tracking-wide uppercase transition-all"
+                                          >
+                                            Register Pay
+                                          </button>
+                                          <button
+                                            onClick={() => handleWriteOffDebt(sal, balance)}
+                                            className="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-red-400 px-2.5 py-1.5 rounded text-[10px] font-bold tracking-wide uppercase transition-all"
+                                            title="Write off this unpaid amount as a bad debt expense"
+                                          >
+                                            Write-off
+                                          </button>
+                                        </>
                                       )}
                                       <button
                                         onClick={() => setEditingSaleVoucher({ ...sal })}
@@ -4619,6 +4735,9 @@ export default function App() {
                           <th className="px-4 py-3 text-right">Pending Balance</th>
                         )}
                         <th className="px-4 py-3">Mode</th>
+                        {financialLedgerQuery === "outstanding" && (
+                          <th className="px-4 py-3 text-right">Action</th>
+                        )}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60">
@@ -4656,6 +4775,17 @@ export default function App() {
                                 {sal.payment_mode}
                               </span>
                             </td>
+                            {financialLedgerQuery === "outstanding" && (
+                              <td className="px-4 py-3 text-right">
+                                <button
+                                  onClick={() => handleWriteOffDebt(sal, balance)}
+                                  className="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-red-400 px-2 py-1 rounded text-[9px] font-bold tracking-wide uppercase transition-all"
+                                  title="Write off this unpaid amount as a bad debt expense"
+                                >
+                                  Write-off
+                                </button>
+                              </td>
+                            )}
                           </tr>
                         );
                       })}
