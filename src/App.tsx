@@ -274,6 +274,32 @@ export default function App() {
     setLogs((prev) => [`[${time}] ${msg}`, ...prev.slice(0, 4)]);
   };
 
+  // Capacitor Hardware Back Button handler
+  useEffect(() => {
+    let listener: any;
+    import('@capacitor/app').then(({ App: CapApp }) => {
+      CapApp.addListener('backButton', ({ canGoBack }) => {
+        const openModals = document.querySelectorAll('.fixed.inset-0');
+        if (openModals.length > 0) {
+          const topModal = openModals[openModals.length - 1];
+          const closeBtn = Array.from(topModal.querySelectorAll('button')).find(
+            b => b.textContent?.includes('Cancel') || b.textContent?.includes('Close') || b.innerHTML.includes('lucide-x') || b.innerHTML.includes('<line ')
+          );
+          if (closeBtn) {
+            (closeBtn as HTMLButtonElement).click();
+          }
+        } else {
+          if (!canGoBack) {
+            CapApp.exitApp();
+          } else {
+            window.history.back();
+          }
+        }
+      }).then(l => listener = l).catch(() => {});
+    }).catch(() => { /* Ignore on web */ });
+    return () => { if (listener) listener.remove(); };
+  }, []);
+
   // Sync Database status and records
   const fetchAllData = async () => {
     try {
@@ -1387,7 +1413,15 @@ export default function App() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-slate-950 font-sans selection:bg-indigo-500/30 text-slate-100 overflow-hidden">
+    <div 
+      className="h-full flex flex-col bg-slate-950 font-sans selection:bg-indigo-500/30 text-slate-100 overflow-hidden"
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)'
+      }}
+    >
 
       {/* ─── PWA: Offline Status Banner ─── */}
       <AnimatePresence>
