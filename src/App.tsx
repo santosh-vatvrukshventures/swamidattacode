@@ -1006,6 +1006,12 @@ export default function App() {
 
   // Edit Sale Voucher
   const handleEditSale = async (updatedSale: Sale) => {
+    if (updatedSale.items_sold.length === 0) {
+      // If all items were removed, delete the voucher entirely.
+      await handleDeleteSale(updatedSale.sale_id);
+      return;
+    }
+
     try {
       const res = await fetch(`/api/sales/${updatedSale.sale_id}`, {
         method: "PUT",
@@ -4741,13 +4747,19 @@ export default function App() {
                 <div className="divide-y divide-slate-850 max-h-[220px] overflow-y-auto no-scrollbar">
                   {editingSaleVoucher.items_sold.map((si, index) => {
                     const updateLineItem = (qty: number, rate: number) => {
-                      const copiedItems = [...editingSaleVoucher.items_sold];
-                      copiedItems[index] = {
-                        ...copiedItems[index],
-                        qty_sold: qty,
-                        unit_price: rate,
-                        total_item_price: qty * rate
-                      };
+                      let copiedItems = [...editingSaleVoucher.items_sold];
+                      
+                      if (qty <= 0) {
+                        // Remove item completely
+                        copiedItems.splice(index, 1);
+                      } else {
+                        copiedItems[index] = {
+                          ...copiedItems[index],
+                          qty_sold: qty,
+                          unit_price: rate,
+                          total_item_price: qty * rate
+                        };
+                      }
 
                       const gross = copiedItems.reduce((sum, item) => sum + item.total_item_price, 0);
                       const net = gross - editingSaleVoucher.discount_given;
@@ -4773,7 +4785,7 @@ export default function App() {
                             <div className="flex items-center gap-1 bg-slate-950 rounded-lg p-0.5 border border-slate-800">
                               <button
                                 type="button"
-                                onClick={() => updateLineItem(Math.max(1, si.qty_sold - 1), si.unit_price)}
+                                onClick={() => updateLineItem(si.qty_sold - 1, si.unit_price)}
                                 className="w-6 h-6 rounded bg-slate-900 hover:bg-slate-850 flex items-center justify-center text-slate-400 font-bold"
                               >
                                 -
