@@ -1859,7 +1859,7 @@ export default function App() {
                           {cart.length === 0 ? (
                             <div className="py-12 text-center text-slate-600 text-xs flex flex-col items-center justify-center gap-1.5">
                               <ShoppingCart className="w-5 h-5 opacity-40 text-slate-500 animate-bounce" />
-                              Cart is empty. Search products above or add them from the Inventory tab.
+                              Cart is empty. Search product above list
                             </div>
                           ) : (
                             cart.map((c) => {
