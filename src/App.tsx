@@ -2408,17 +2408,37 @@ export default function App() {
                                     )}
                                   </td>
                                   <td className="px-4 py-3 text-right">
-                                    {!isSettled && (
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      {!isSettled && (
+                                        <button
+                                          onClick={() => {
+                                            setShowSettlementModal(sal);
+                                            setSettlementAmount(balance);
+                                          }}
+                                          className="bg-red-950/40 hover:bg-red-900/40 border border-red-800 hover:border-red-500/50 text-red-400 px-2.5 py-1.5 rounded text-[10px] font-bold tracking-wide uppercase transition-all"
+                                        >
+                                          Register Pay
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => setEditingSaleVoucher({ ...sal })}
+                                        className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors ml-1"
+                                        title="Edit sale voucher"
+                                      >
+                                        <Edit className="w-3.5 h-3.5" />
+                                      </button>
                                       <button
                                         onClick={() => {
-                                          setShowSettlementModal(sal);
-                                          setSettlementAmount(balance);
+                                          if (confirm("Are you sure you want to permanently delete this sale voucher? Inventory quantities will be restored.")) {
+                                            handleDeleteSale(sal.sale_id);
+                                          }
                                         }}
-                                        className="bg-red-950/40 hover:bg-red-900/40 border border-red-800 hover:border-red-500/50 text-red-400 px-2.5 py-1.5 rounded text-[10px] font-bold tracking-wide uppercase transition-all"
+                                        className="p-1 text-red-400 hover:text-red-300 hover:bg-red-950/40 rounded transition-colors"
+                                        title="Delete sale voucher"
                                       >
-                                        Register Pay
+                                        <Trash2 className="w-3.5 h-3.5" />
                                       </button>
-                                    )}
+                                    </div>
                                   </td>
                                 </tr>
                               );
@@ -2989,15 +3009,17 @@ export default function App() {
                                       >
                                         <Edit className="w-3.5 h-3.5" />
                                       </button>
-                                      {inw.total_invoice_cost === 0 && (
-                                        <button
-                                          onClick={() => handleDeleteInward(inw.inward_id)}
-                                          className="p-1 text-red-400 hover:text-red-300 hover:bg-red-950/40 rounded transition-colors"
-                                          title="Delete zero-amount inward voucher"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                      )}
+                                      <button
+                                        onClick={() => {
+                                          if (confirm("Are you sure you want to permanently delete this inward purchase voucher? Inventory will be reduced.")) {
+                                            handleDeleteInward(inw.inward_id);
+                                          }
+                                        }}
+                                        className="p-1 text-red-400 hover:text-red-300 hover:bg-red-950/40 rounded transition-colors ml-1"
+                                        title="Delete inward voucher"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
                                     </div>
                                   </td>
                                 </tr>
