@@ -26,6 +26,32 @@ export default function CustomerPortal({ items, customersList, offers }: Custome
     return groups;
   }, [items]);
 
+  const orderedCategories = useMemo(() => {
+    const keys = Object.keys(groupedItems);
+    const priority = ["Single use", "Mangal Puja", "Party decoration"];
+    
+    // Custom sort: prioritized first, then alphabetical for the rest
+    return keys.sort((a, b) => {
+      const aIndex = priority.findIndex(p => p.toLowerCase() === a.toLowerCase());
+      const bIndex = priority.findIndex(p => p.toLowerCase() === b.toLowerCase());
+      
+      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      
+      return a.localeCompare(b);
+    });
+  }, [groupedItems]);
+
+  const toggleCartSelection = (item: Item) => {
+    const existing = cart.find((c) => c.item_id === item.item_id);
+    if (existing) {
+      setCart(cart.filter((c) => c.item_id !== item.item_id));
+    } else {
+      setCart([...cart, { item_id: item.item_id, name: item.name, qty: 1 }]);
+    }
+  };
+
   const addToCart = (item: Item) => {
     const existing = cart.find((c) => c.item_id === item.item_id);
     if (existing) {
@@ -292,28 +318,36 @@ export default function CustomerPortal({ items, customersList, offers }: Custome
               )}
 
               {/* Categorized Items */}
-              {Object.keys(groupedItems).sort().map(category => (
+              {orderedCategories.map(category => (
                 <div key={category} className="space-y-3">
                   <h3 className="text-sm font-bold text-indigo-300 uppercase tracking-widest border-b border-slate-800 pb-2">
                     {category}
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3">
                     {groupedItems[category].map(item => {
-                      const cartItem = cart.find(c => c.item_id === item.item_id);
+                      const isSelected = !!cart.find(c => c.item_id === item.item_id);
                       return (
-                        <div key={item.item_id} className="bg-slate-950 border border-slate-800 p-3 rounded-lg flex items-center justify-between">
+                        <div 
+                          key={item.item_id} 
+                          onClick={() => toggleCartSelection(item)}
+                          className={`border p-3 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
+                            isSelected 
+                              ? 'bg-indigo-900/40 border-indigo-500' 
+                              : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                          }`}
+                        >
                           <div className="pr-2 truncate">
                             <h4 className="text-sm font-bold text-slate-200 truncate">{item.name}</h4>
-                            {cartItem && (
-                              <p className="text-[10px] text-emerald-400 mt-0.5">In Cart: {cartItem.qty}</p>
-                            )}
                           </div>
-                          <button
-                            onClick={() => addToCart(item)}
-                            className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/30 hover:border-indigo-500 p-2 rounded-lg shrink-0 transition-colors"
+                          <div
+                            className={`w-6 h-6 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                              isSelected
+                                ? 'bg-indigo-600 border-indigo-600'
+                                : 'bg-slate-900 border-slate-700'
+                            }`}
                           >
-                            <Plus className="w-4 h-4" />
-                          </button>
+                            {isSelected && <Check className="w-4 h-4 text-white" />}
+                          </div>
                         </div>
                       );
                     })}
