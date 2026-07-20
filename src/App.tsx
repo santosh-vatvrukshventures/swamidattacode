@@ -4392,10 +4392,16 @@ export default function App() {
                         const existsIdx = inwardEditCart.findIndex(c => c.item.item_id === selectedEditInwardItem);
                         if (existsIdx > -1) {
                           const updated = [...inwardEditCart];
-                          updated[existsIdx] = { item: matched, qty: editInwardItemQty, rate: editInwardItemRate };
+                          if (editInwardItemQty <= 0) {
+                            updated.splice(existsIdx, 1);
+                          } else {
+                            updated[existsIdx] = { item: matched, qty: editInwardItemQty, rate: editInwardItemRate };
+                          }
                           setInwardEditCart(updated);
                         } else {
-                          setInwardEditCart([...inwardEditCart, { item: matched, qty: editInwardItemQty, rate: editInwardItemRate }]);
+                          if (editInwardItemQty > 0) {
+                            setInwardEditCart([...inwardEditCart, { item: matched, qty: editInwardItemQty, rate: editInwardItemRate }]);
+                          }
                         }
 
                         setSelectedEditInwardItem("");
@@ -4486,11 +4492,11 @@ export default function App() {
                     return;
                   }
                   if (inwardEditCart.length === 0) {
-                    alert("Please add at least one item.");
+                    handleDeleteInward(showEditInwardModal.inward_id);
                     return;
                   }
                   const totalCost = inwardEditCart.reduce((sum, c) => sum + (c.qty * c.rate), 0);
-                  if (totalCost <= 0) {
+                  if (totalCost <= 0 && inwardEditCart.length > 0) {
                     alert("Total invoice cost must be greater than 0.");
                     return;
                   }
